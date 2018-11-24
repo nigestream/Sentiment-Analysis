@@ -1,11 +1,17 @@
 #环境要求
 - Unix/Linux系统
-- python 2.7
+- python 3.5
 - python包安装： keras,sklearn,gensim,jieba,h5py,numpy,pandas
 ```
 sudo pip install -r requirements.txt
 ```
 # 用法
+
+## 训练
+```
+python code/Sentiment_lstm.py
+python code/Sentiment_svm.py
+```
 
 ## 使用SVM分类器进行情感分类：
 ```
@@ -32,8 +38,8 @@ python predict.py lstm 电脑散热太差，偶尔还蓝屏，送货也太慢了
 
 #数据
 - ./data/ 原始数据文件夹
-  - data/neg.xls 负样本原始数据
-  - data/pos.xls 正样本原始数据
+  - data/neg.csv 负样本原始数据 不紧急
+  - data/pos.csv 正样本原始数据 紧急
 
 - ./svm_data/ svm数据文件夹
   - ./svm_data/\*.npy 处理后的训练数据和测试数据
