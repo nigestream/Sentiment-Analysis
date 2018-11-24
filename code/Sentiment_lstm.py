@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import yaml
-import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 import multiprocessing
 import numpy as np
 from gensim.models.word2vec import Word2Vec
@@ -65,10 +62,10 @@ def create_dictionaries(model=None,
     '''
     if (combined is not None) and (model is not None):
         gensim_dict = Dictionary()
-        gensim_dict.doc2bow(model.vocab.keys(),
+        gensim_dict.doc2bow(list(model.wv.vocab.keys()),
                             allow_update=True)
-        w2indx = {v: k+1 for k, v in gensim_dict.items()}#所有频数超过10的词语的索引
-        w2vec = {word: model[word] for word in w2indx.keys()}#所有频数超过10的词语的词向量
+        w2indx = {v: k+1 for k, v in list(gensim_dict.items())}#所有频数超过10的词语的索引
+        w2vec = {word: model[word] for word in list(w2indx.keys())}#所有频数超过10的词语的词向量
 
         def parse_dataset(combined):
             ''' Words become integers
@@ -87,7 +84,7 @@ def create_dictionaries(model=None,
         combined= sequence.pad_sequences(combined, maxlen=maxlen)#每个句子所含词语对应的索引，所以句子中含有频数小于10的词语，索引为0
         return w2indx, w2vec,combined
     else:
-        print 'No data provided...'
+        print('No data provided...')
 
 
 #创建词语字典，并返回每个词语的索引，词向量，以及每个句子所对应的词语索引
@@ -99,7 +96,7 @@ def word2vec_train(combined):
                      workers=cpu_count,
                      iter=n_iterations)
     model.build_vocab(combined)
-    model.train(combined)
+    model.train(combined, total_examples=model.corpus_count, epochs=5)
     model.save('lstm_data/Word2vec_model.pkl')
     index_dict, word_vectors,combined = create_dictionaries(model=model,combined=combined)
     return   index_dict, word_vectors,combined
@@ -108,16 +105,16 @@ def get_data(index_dict,word_vectors,combined,y):
 
     n_symbols = len(index_dict) + 1  # 所有单词的索引数，频数小于10的词语索引为0，所以加1
     embedding_weights = np.zeros((n_symbols, vocab_dim))#索引为0的词语，词向量全为0
-    for word, index in index_dict.items():#从索引为1的词语开始，对每个词语对应其词向量
+    for word, index in list(index_dict.items()):#从索引为1的词语开始，对每个词语对应其词向量
         embedding_weights[index, :] = word_vectors[word]
     x_train, x_test, y_train, y_test = train_test_split(combined, y, test_size=0.2)
-    print x_train.shape,y_train.shape
+    print(x_train.shape,y_train.shape)
     return n_symbols,embedding_weights,x_train,y_train,x_test,y_test
 
 
 ##定义网络结构
 def train_lstm(n_symbols,embedding_weights,x_train,y_train,x_test,y_test):
-    print 'Defining a Simple Keras Model...'
+    print('Defining a Simple Keras Model...')
     model = Sequential()  # or Graph or whatever
     model.add(Embedding(output_dim=vocab_dim,
                         input_dim=n_symbols,
@@ -129,14 +126,14 @@ def train_lstm(n_symbols,embedding_weights,x_train,y_train,x_test,y_test):
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
-    print 'Compiling the Model...'
+    print('Compiling the Model...')
     model.compile(loss='binary_crossentropy',
                   optimizer='adam',metrics=['accuracy'])
 
-    print "Train..."
-    model.fit(x_train, y_train, batch_size=batch_size, nb_epoch=n_epoch,verbose=1, validation_data=(x_test, y_test),show_accuracy=True)
+    print("Train...")
+    model.fit(x_train, y_train, batch_size=batch_size, epochs=n_epoch,verbose=1, validation_data=(x_test, y_test))
 
-    print "Evaluate..."
+    print("Evaluate...")
     score = model.evaluate(x_test, y_test,
                                 batch_size=batch_size)
 
@@ -144,21 +141,22 @@ def train_lstm(n_symbols,embedding_weights,x_train,y_train,x_test,y_test):
     with open('lstm_data/lstm.yml', 'w') as outfile:
         outfile.write( yaml.dump(yaml_string, default_flow_style=True) )
     model.save_weights('lstm_data/lstm.h5')
-    print 'Test score:', score
+    print('Test score:', score)
 
 
 #训练模型，并保存
 def train():
-    print 'Loading Data...'
+    print('Loading Data...')
     combined,y=loadfile()
-    print len(combined),len(y)
-    print 'Tokenising...'
+    print(len(combined),len(y))
+    print('Tokenising...')
     combined = tokenizer(combined)
-    print 'Training a Word2vec model...'
+    print(combined[:10])
+    print('Training a Word2vec model...')
     index_dict, word_vectors,combined=word2vec_train(combined)
-    print 'Setting up Arrays for Keras Embedding Layer...'
+    print('Setting up Arrays for Keras Embedding Layer...')
     n_symbols,embedding_weights,x_train,y_train,x_test,y_test=get_data(index_dict, word_vectors,combined,y)
-    print x_train.shape,y_train.shape
+    print(x_train.shape,y_train.shape)
     train_lstm(n_symbols,embedding_weights,x_train,y_train,x_test,y_test)
 
 
@@ -172,12 +170,12 @@ def input_transform(string):
     return combined
 
 def lstm_predict(string):
-    print 'loading model......'
+    print('loading model......')
     with open('lstm_data/lstm.yml', 'r') as f:
         yaml_string = yaml.load(f)
     model = model_from_yaml(yaml_string)
 
-    print 'loading weights......'
+    print('loading weights......')
     model.load_weights('lstm_data/lstm.h5')
     model.compile(loss='binary_crossentropy',
                   optimizer='adam',metrics=['accuracy'])
@@ -186,11 +184,11 @@ def lstm_predict(string):
     #print data
     result=model.predict_classes(data)
     if result[0][0]==1:
-        print string,' positive'
+        print((string,' positive'))
     else:
-        print string,' negative'
+        print((string,' negative'))
 if __name__=='__main__':
-    #train()
+    train()
     #string='电池充完了电连手机都打不开.简直烂的要命.真是金玉其外,败絮其中!连5号电池都不如'
     string='牛逼的手机，从3米高的地方摔下去都没坏，质量非常好'
     string='酒店的环境非常好，价格也便宜，值得推荐'
