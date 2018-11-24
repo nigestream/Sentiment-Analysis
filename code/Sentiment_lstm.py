@@ -32,8 +32,8 @@ cpu_count = multiprocessing.cpu_count()
 
 #加载训练文件
 def loadfile():
-    neg=pd.read_excel('data/neg.xls',header=None,index=None)
-    pos=pd.read_excel('data/pos.xls',header=None,index=None)
+    neg=pd.read_csv('data/neg.csv',header=None)
+    pos=pd.read_csv('data/pos.csv',header=None)
 
     combined=np.concatenate((pos[0], neg[0]))
     y = np.concatenate((np.ones(len(pos),dtype=int), np.zeros(len(neg),dtype=int)))

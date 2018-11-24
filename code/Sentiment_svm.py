@@ -15,8 +15,8 @@ from sklearn.svm import SVC
 
 # 加载文件，导入数据,分词
 def loadfile():
-    neg = pd.read_excel('data/neg.xls', header=None, index=None)
-    pos = pd.read_excel('data/pos.xls', header=None, index=None)
+    neg = pd.read_csv('data/neg.csv', header=None)
+    pos = pd.read_csv('data/pos.csv', header=None)
 
     cw = lambda x: list(jieba.cut(x))
     pos['words'] = pos[0].apply(cw)
